@@ -1,0 +1,46 @@
+<MyRootLayout>:
+    orientation: 'vertical'
+    CoronaWidget:
+        id: wdgt1
+        
+<CoronaWidget>:
+    Spinner:
+        id: spn1
+        values: root.continents
+        size_hint: .25, .15
+        pos_hint: {'top':1, 'left':1}
+        on_text:
+            root.activeContinent = self.text
+            root.countries = root.continentsAndCountries[self.text]
+    Spinner:
+        id: spn2
+        values: root.countries
+        size_hint: .25, .15
+        pos_hint: {'top':1, 'x':.25}
+        on_text:
+            root.update_active_country(self.text)
+            root.ids['plt1'].update_plot()
+    Label:
+        id: lbl1
+        text: root.newInfectionsDate
+        font_size: 25
+        size_hint: .25, .15
+        pos_hint: {'top':1, 'x':.5}
+    Label:
+        id: lbl2
+        text: root.newInfections
+        font_size: 25
+        size_hint: .25, .15
+        pos_hint: {'top':1, 'x':.75}
+    TwoPlotsSharedXWidget:
+        id: plt1
+        size_hint: 1, .85
+        pos_hint: {'top': .85, 'left':1}
+        sourceX: root.datesOfCases
+        sourceY: [root.dailyCases, root.cumulativeCases]
+        units : ['','']
+        titles : ['Daily Cases','Cumulative Cases']
+        ax_colors : ['r','b']
+
+<TwoPlotsSharedXWidget>:
+
