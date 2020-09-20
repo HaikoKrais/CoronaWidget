@@ -22,16 +22,28 @@
             root.ids['plt1'].update_plot()
     Label:
         id: lbl1
-        text: root.newInfectionsDate
-        font_size: 25
-        size_hint: .25, .15
+        text: 'Date'
+        font_size: 15
+        size_hint: .25, .05
         pos_hint: {'top':1, 'x':.5}
     Label:
         id: lbl2
+        text: root.newInfectionsDate
+        font_size: 25
+        size_hint: .25, .1
+        pos_hint: {'top':.95, 'x':.5}
+    Label:
+        id: lbl3
+        text: 'Infections'
+        font_size: 15
+        size_hint: .25, .05
+        pos_hint: {'top':1, 'x':.75}
+    Label:
+        id: lbl4
         text: root.newInfections
         font_size: 25
-        size_hint: .25, .15
-        pos_hint: {'top':1, 'x':.75}
+        size_hint: .25, .1
+        pos_hint: {'top':.95, 'x':.75}
     TwoPlotsSharedXWidget:
         id: plt1
         size_hint: 1, .85
