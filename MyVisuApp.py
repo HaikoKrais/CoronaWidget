@@ -4,19 +4,50 @@ from kivy.app import App
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import DictProperty, ObjectProperty, StringProperty, ListProperty
-from kivy.uix.label import Label
 from kivy.uix.spinner import Spinner
 import urllib.request
 import json
-from time import gmtime, asctime, strftime, mktime, strptime
 from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 import matplotlib.pyplot as plt
 import matplotlib.dates as dt
 from datetime import datetime
-from time import gmtime, asctime, strftime, mktime, strptime
+from time import mktime, strptime
 import os
 
 class CoronaWidget(RelativeLayout):
+    '''Shows infections for the current date and plots for daily and cumulative infections.
+
+        Attributes:
+        The attributes (excluding dataset[]) are bound by name to propertis in the kv file. Updating them will automatically update the displayed data in the visualisation
+            continentsAndCountries (DictProperty):
+                contains continents and correspondant countries
+                {'europe': ['germany', 'france', ...], 'asia': ['china', 'singapore', ...]}
+            continents (ListProperty):
+                list holding all continents. Retrieved from continentsAndCountries.
+            countries (ListProperty):
+                list holding all countries of the selected continent.
+                Retrieved from continentsAndCountries
+            activeCountry (StringProperty, str):
+                currently active country
+            activeContinent (StringProperty, str):
+                currently active continent
+            newInfections (StringProperty, str):
+                Infections which were reported for the latest date within activeCountry
+            newInfectionsDate (StringProperty, str):
+                Date at which the newInfections were reported
+            dailyCases (ListProperty):
+                List holding all infections in the order from latest to oldest
+            cumulativeCases (ListProperty):
+                List holding all added up infections in the order from latest to oldest
+            datesOfCases (ListProperty):
+                List holding all dates for the dailyCases and cumulativeCases
+            notification  (StringProperty, str):
+                Error string. Shows exceptions, like no data available.
+                Initially set to --.
+
+            dataset (list):
+                list holding all the downloaded data
+    '''
 
     continentsAndCountries = DictProperty({})
     continents = ListProperty([])
@@ -49,8 +80,7 @@ class CoronaWidget(RelativeLayout):
                 json.dump(data, write_file)
 
     def download_data(self, *args, **kwargs):
-        '''download_data gets the weather data from openweathermap.org and writes it to
-           json file'''
+        '''download the current data from the ECDC'''
         
         url = 'https://opendata.ecdc.europa.eu/covid19/casedistribution/json'
         fileDir = os.path.dirname(os.path.abspath(__file__))
@@ -75,6 +105,7 @@ class CoronaWidget(RelativeLayout):
             self.notification = 'No data available'
 
     def update_active_country(self, country, *args, **kwargs):
+        '''update all data for a new selected country'''
 
         self.activeCountry = country
         
@@ -99,6 +130,7 @@ class CoronaWidget(RelativeLayout):
         self.cumulativeCases.reverse()
 
     def update_continent_spinner(self, *args, **kwargs):
+        '''Update the spinners with all available continents and countries'''
 
         continentsAndCountries = {}
 
@@ -116,6 +148,28 @@ class CoronaWidget(RelativeLayout):
                 self.ids['spn2'].text = 'Germany'
 
 class TwoPlotsSharedXWidget (FigureCanvasKivyAgg):
+    '''Displays two datetimeplots with shared x-axis.
+
+        Attributes:
+        The attributes are bound by name to propertis in the kv file. Updating them will automatically update the displayed data in the visualisation
+            sourceX (ListProperty):
+                list of datetime values for the timeseries
+            sourceY (ListProperty):
+                list holding two lists of values corresponding with timestamp
+            units (ObjectProperty, str):
+                list of string. Holding the units of the y-axis.
+                Initially set to --.
+            titles (ObjectProperty, str):
+                list of string. Holding the titles for the plots.
+                Initially set to --.
+            ax_colors (ObjectProperty, str):
+                List, setting the color of the plot.
+                Initially set to green.
+                Other parameters to change to different colors can be found in the matplotib documentation https://matplotlib.org/2.1.1/api/_as_gen/matplotlib.pyplot.plot.html
+            notification  (StringProperty, str):
+                Error string. Shows exceptions, like no data available.
+                Initially set to --.
+    '''
 
     plt.style.use('dark_background')
 
@@ -131,6 +185,16 @@ class TwoPlotsSharedXWidget (FigureCanvasKivyAgg):
         super(TwoPlotsSharedXWidget, self).__init__(plt.figure(), **kwargs)
         
     def update_plot(self, *args, **kwargs):
+        '''
+        reads the latest data, updates the figure and plots it.
+        
+        Args:
+            *args (): not used. For further development.
+            **kwargs (): not used. For further development.
+
+        Returns:
+            Nothing.
+        '''
 
         timestamp = []
 
