@@ -13,6 +13,7 @@ import matplotlib.dates as dt
 from datetime import datetime
 from time import mktime, strptime
 import os
+from kivy.network.urlrequest import UrlRequest
 
 class CoronaWidget(RelativeLayout):
     '''Shows infections for the current date and plots for daily and cumulative infections.
@@ -35,8 +36,8 @@ class CoronaWidget(RelativeLayout):
                 Infections which were reported for the latest date within activeCountry
             newInfectionsDate (StringProperty, str):
                 Date at which the newInfections were reported
-            dailyCases (ListProperty):
-                List holding all infections in the order from latest to oldest
+            weeklyCases (ListProperty):
+                List holding all infections per week in the order from latest to oldest
             cumulativeCases (ListProperty):
                 List holding all added up infections in the order from latest to oldest
             datesOfCases (ListProperty):
@@ -52,12 +53,11 @@ class CoronaWidget(RelativeLayout):
     continentsAndCountries = DictProperty({})
     continents = ListProperty([])
     countries = ListProperty([])
-    activeCountry = StringProperty('--')
-    activeContinent = StringProperty('--')
-    allCountries = ListProperty([])
+    activeCountry = StringProperty('Germany')
+    activeContinent = StringProperty('Europe')
     newInfections = StringProperty('--')
     newInfectionsDate = StringProperty('--')
-    dailyCases = ListProperty([])
+    casesWeekly = ListProperty([])
     cumulativeCases = ListProperty([])
     datesOfCases = ListProperty([])
     notification = StringProperty('')
@@ -65,63 +65,46 @@ class CoronaWidget(RelativeLayout):
 
     def __init__(self, **kwargs):
         super(CoronaWidget, self).__init__(**kwargs)
-    
-    def get_http_to_json(self, url, file_name, *args, **kwargs):
-        
-        #open the url and decode the json data
-        with urllib.request.urlopen(url) as f:
-            data = json.loads(f.read().decode('utf-8'))
-
-            #build the file name to save the file
-            my_filename = file_name + '.json'
-                
-            #save the file
-            with open(my_filename, 'w') as write_file:
-                json.dump(data, write_file)
 
     def download_data(self, *args, **kwargs):
         '''download the current data from the ECDC'''
+        url = 'https://opendata.ecdc.europa.eu/covid19/casedistribution/json/'
         
-        url = 'https://opendata.ecdc.europa.eu/covid19/casedistribution/json'
-        fileDir = os.path.dirname(os.path.abspath(__file__))
-        absFilename = os.path.join(fileDir, 'covid')
+        UrlRequest(url = url, on_success = self.update_dataset, on_error = self.download_error, on_progress = self.progress, chunk_size = 40960)
 
-        self.get_http_to_json(url, absFilename)
+    def update_dataset(self, request, result):
+        '''write result of request into variable self.dataset'''
+        self.dataset = result['records'] #data was json. Therefore directly decoded by the UrlRequest
+        self.update_continent_spinner()
+        self.update_active_country(country = self.activeCountry)
+        self.notification = ''
 
+    def download_error(self, request, error):
+        '''notify on error'''
+        self.notification = 'data could not be downloaded'
 
-    def update_dataset(self, *args, **kwargs):
-
-        #Read and store data for selected country
-        try:
-            fileDir = os.path.dirname(os.path.abspath(__file__))
-            absFilename = os.path.join(fileDir, 'covid.json')
-            with open(absFilename, 'r') as read_file:
-                data=json.load(read_file)
-                self.dataset = data['records']
-
-        #if the file does not exist print an error message
-        except FileNotFoundError as e:
-            print(e)
-            self.notification = 'No data available'
+    def progress(self, request, current_size, total_size):
+        '''show progress to the user'''
+        self.notification = ('Downloading data: {} bytes of {} bytes'.format(current_size, total_size))        print(self.notification)
 
     def update_active_country(self, country, *args, **kwargs):
         '''update all data for a new selected country'''
 
         self.activeCountry = country
         
-        self.dailyCases.clear()
+        self.casesWeekly.clear()
         self.datesOfCases.clear()
 
         for element in self.dataset:
             if element['countriesAndTerritories'] == country:
-                self.dailyCases.append(element['cases'])
-                self.datesOfCases.append(element['dateRep'])
+                self.casesWeekly.append(element['cases_weekly'])
+                self.datesOfCases.append(element['year_week'])
                 
-        self.newInfections = str(self.dailyCases[0])
+        self.newInfections = str(self.casesWeekly[0])
         self.newInfectionsDate = self.datesOfCases[0]
 
         #cases are ordered from most current to past. Needs to be reversed to be added together
-        self.cumulativeCases = self.dailyCases.copy()
+        self.cumulativeCases = self.casesWeekly.copy()
         self.cumulativeCases.reverse()
 
         for n in range(1,len(self.cumulativeCases)):
@@ -130,7 +113,8 @@ class CoronaWidget(RelativeLayout):
         self.cumulativeCases.reverse()
 
     def update_continent_spinner(self, *args, **kwargs):
-        '''Update the spinners with all available continents and countries'''
+        '''Update the spinners with all available continents and countries.
+           Use preset values from self.activeContinent and self.activeCountry'''
 
         continentsAndCountries = {}
 
@@ -142,10 +126,10 @@ class CoronaWidget(RelativeLayout):
 
         self.continentsAndCountries = continentsAndCountries
         self.continents = continentsAndCountries.keys()
-        if 'Europe' in self.continents:
-            self.ids['spn1'].text = 'Europe'
-            if 'Germany' in self.countries:
-                self.ids['spn2'].text = 'Germany'
+        if self.activeContinent in self.continents:
+            self.ids['spn1'].text = self.activeContinent
+            if self.activeCountry in self.countries:
+                self.ids['spn2'].text = self.activeCountry
 
 class TwoPlotsSharedXWidget (FigureCanvasKivyAgg):
     '''Displays two datetimeplots with shared x-axis.
@@ -199,7 +183,7 @@ class TwoPlotsSharedXWidget (FigureCanvasKivyAgg):
         timestamp = []
 
         for element in self.sourceX:
-            timestamp.append(datetime.fromtimestamp(mktime(strptime(element,'%d/%m/%Y'))))
+            timestamp.append(datetime.fromtimestamp(mktime(strptime(element + '-1', "%Y-%W-%w"))))
 
         #Clear the figure
         myfigure = self.figure
@@ -226,8 +210,6 @@ class MyRootLayout(BoxLayout):
     def __init__(self, **kwargs):
         super(MyRootLayout, self).__init__(**kwargs)
         self.ids['wdgt1'].download_data()
-        self.ids['wdgt1'].update_dataset()
-        self.ids['wdgt1'].update_continent_spinner()
 
 class MyVisuApp(App):
     def build(self):
