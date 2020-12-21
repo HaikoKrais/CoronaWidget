@@ -5,8 +5,6 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import DictProperty, ObjectProperty, StringProperty, ListProperty
 from kivy.uix.spinner import Spinner
-import urllib.request
-import json
 from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 import matplotlib.pyplot as plt
 import matplotlib.dates as dt
@@ -85,7 +83,7 @@ class CoronaWidget(RelativeLayout):
 
     def progress(self, request, current_size, total_size):
         '''show progress to the user'''
-        self.notification = ('Downloading data: {} bytes of {} bytes'.format(current_size, total_size))        print(self.notification)
+        self.notification = ('Downloading data: {} bytes of {} bytes'.format(current_size, total_size))
 
     def update_active_country(self, country, *args, **kwargs):
         '''update all data for a new selected country'''
