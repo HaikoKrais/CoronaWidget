@@ -113,10 +113,10 @@ class CoronaWidget(RelativeLayout):
         continentsAndCountries = {}
 
         for element in self.dataset:
-            if not element.get('continentExp') in continentsAndCountries.keys():
-                continentsAndCountries[element['continentExp']] = []
-            if not element.get('countriesAndTerritories') in continentsAndCountries[element['continentExp']]:
-                continentsAndCountries[element['continentExp']].append(element['countriesAndTerritories'])
+            if not element.get('continent') in continentsAndCountries.keys():
+                continentsAndCountries[element['continent']] = []
+            if not element.get('country') in continentsAndCountries[element['continent']]:
+                continentsAndCountries[element['continent']].append(element['country'])
 
         self.continentsAndCountries = continentsAndCountries
         self.continents = continentsAndCountries.keys()
