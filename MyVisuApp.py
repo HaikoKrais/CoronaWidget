@@ -72,7 +72,7 @@ class CoronaWidget(RelativeLayout):
 
     def update_dataset(self, request, result):
         '''write result of request into variable self.dataset'''
-        self.dataset = result['records'] #data was json. Therefore directly decoded by the UrlRequest
+        self.dataset = result #data was json. Therefore directly decoded by the UrlRequest
         self.update_continent_spinner()
         self.update_active_country(country = self.activeCountry)
         self.notification = ''
