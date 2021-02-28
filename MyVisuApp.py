@@ -66,7 +66,7 @@ class CoronaWidget(RelativeLayout):
 
     def download_data(self, *args, **kwargs):
         '''download the current data from the ECDC'''
-        url = 'https://opendata.ecdc.europa.eu/covid19/casedistribution/json/'
+        url = 'https://opendata.ecdc.europa.eu/covid19/nationalcasedeath/json/'
         
         UrlRequest(url = url, on_success = self.update_dataset, on_error = self.download_error, on_progress = self.progress, chunk_size = 40960)
 
@@ -90,25 +90,21 @@ class CoronaWidget(RelativeLayout):
 
         self.activeCountry = country
         
+        #update plot data
         self.casesWeekly.clear()
+        self.cumulativeCases.clear()
         self.datesOfCases.clear()
 
         for element in self.dataset:
-            if element['countriesAndTerritories'] == country:
-                self.casesWeekly.append(element['cases_weekly'])
-                self.datesOfCases.append(element['year_week'])
-                
-        self.newInfections = str(self.casesWeekly[0])
-        self.newInfectionsDate = self.datesOfCases[0]
+            if element['country'] == country and element['indicator'] == 'cases':
+                self.casesWeekly.append(element['weekly_count'])
+                self.cumulativeCases.append(element['cumulative_count'])
+                self.datesOfCases.append(datetime.fromtimestamp(mktime(strptime(element['year_week'] + '-1', '%Y-%W-%w'))))
 
-        #cases are ordered from most current to past. Needs to be reversed to be added together
-        self.cumulativeCases = self.casesWeekly.copy()
-        self.cumulativeCases.reverse()
-
-        for n in range(1,len(self.cumulativeCases)):
-            self.cumulativeCases[n] = self.cumulativeCases[n] + self.cumulativeCases[n-1]
-
-        self.cumulativeCases.reverse()
+        #update last week labels
+        indexLastDate = self.datesOfCases.index(max(self.datesOfCases))
+        self.newInfections = str(self.casesWeekly[indexLastDate])
+        self.newInfectionsDate = self.datesOfCases[indexLastDate].strftime('%Y-%W')
 
     def update_continent_spinner(self, *args, **kwargs):
         '''Update the spinners with all available continents and countries.
