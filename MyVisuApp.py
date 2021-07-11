@@ -9,9 +9,11 @@ from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 import matplotlib.pyplot as plt
 import matplotlib.dates as dt
 from datetime import datetime
-from time import mktime, strptime
+from time import mktime, strptime, strftime
 import os
 from kivy.network.urlrequest import UrlRequest
+from TwoPlotsSharedXWidgetApp import TwoPlotsSharedXWidget as TwoPlotsSharedXWidget
+
 
 class CoronaWidget(RelativeLayout):
     '''Shows infections for the current date and plots for daily and cumulative infections.
@@ -67,14 +69,15 @@ class CoronaWidget(RelativeLayout):
     def download_data(self, *args, **kwargs):
         '''download the current data from the ECDC'''
         url = 'https://opendata.ecdc.europa.eu/covid19/nationalcasedeath/json/'
-        
-        UrlRequest(url = url, on_success = self.update_dataset, on_error = self.download_error, on_progress = self.progress, chunk_size = 40960)
+
+        UrlRequest(url=url, on_success=self.update_dataset, on_error=self.download_error, on_progress=self.progress,
+                   chunk_size=40960)
 
     def update_dataset(self, request, result):
         '''write result of request into variable self.dataset'''
-        self.dataset = result #data was json. Therefore directly decoded by the UrlRequest
+        self.dataset = result  # data was json. Therefore directly decoded by the UrlRequest
         self.update_continent_spinner()
-        self.update_active_country(country = self.activeCountry)
+        self.update_active_country(country=self.activeCountry)
         self.notification = ''
 
     def download_error(self, request, error):
@@ -89,8 +92,8 @@ class CoronaWidget(RelativeLayout):
         '''update all data for a new selected country'''
 
         self.activeCountry = country
-        
-        #update plot data
+
+        # update plot data
         self.casesWeekly.clear()
         self.cumulativeCases.clear()
         self.datesOfCases.clear()
@@ -99,9 +102,10 @@ class CoronaWidget(RelativeLayout):
             if element['country'] == country and element['indicator'] == 'cases':
                 self.casesWeekly.append(element['weekly_count'])
                 self.cumulativeCases.append(element['cumulative_count'])
-                self.datesOfCases.append(datetime.fromtimestamp(mktime(strptime(element['year_week'] + '-1', '%Y-%W-%w'))))
+                self.datesOfCases.append(
+                    datetime.fromtimestamp(mktime(strptime(element['year_week'] + '-1', '%Y-%W-%w'))))
 
-        #update last week labels
+        # update last week labels
         indexLastDate = self.datesOfCases.index(max(self.datesOfCases))
         self.newInfections = str(self.casesWeekly[indexLastDate])
         self.newInfectionsDate = self.datesOfCases[indexLastDate].strftime('%Y-%W')
@@ -113,104 +117,33 @@ class CoronaWidget(RelativeLayout):
         continentsAndCountries = {}
 
         for element in self.dataset:
-            if not element.get('continent') in continentsAndCountries.keys():
-                continentsAndCountries[element['continent']] = []
-            if not element.get('country') in continentsAndCountries[element['continent']]:
-                continentsAndCountries[element['continent']].append(element['country'])
+            try:
+                if not element.get('continent') in continentsAndCountries.keys():
+                    continentsAndCountries[element['continent']] = []
+                if not element.get('country') in continentsAndCountries[element['continent']]:
+                    continentsAndCountries[element['continent']].append(element['country'])
+            except:
+                self.notification = ('Unknown error in : {}').format(element)
 
         self.continentsAndCountries = continentsAndCountries
         self.continents = continentsAndCountries.keys()
+
         if self.activeContinent in self.continents:
             self.ids['spn1'].text = self.activeContinent
             if self.activeCountry in self.countries:
                 self.ids['spn2'].text = self.activeCountry
 
-class TwoPlotsSharedXWidget (FigureCanvasKivyAgg):
-    '''Displays two datetimeplots with shared x-axis.
 
-        Attributes:
-        The attributes are bound by name to propertis in the kv file. Updating them will automatically update the displayed data in the visualisation
-            sourceX (ListProperty):
-                list of datetime values for the timeseries
-            sourceY (ListProperty):
-                list holding two lists of values corresponding with timestamp
-            units (ObjectProperty, str):
-                list of string. Holding the units of the y-axis.
-                Initially set to --.
-            titles (ObjectProperty, str):
-                list of string. Holding the titles for the plots.
-                Initially set to --.
-            ax_colors (ObjectProperty, str):
-                List, setting the color of the plot.
-                Initially set to green.
-                Other parameters to change to different colors can be found in the matplotib documentation https://matplotlib.org/2.1.1/api/_as_gen/matplotlib.pyplot.plot.html
-            notification  (StringProperty, str):
-                Error string. Shows exceptions, like no data available.
-                Initially set to --.
-    '''
-
-    plt.style.use('dark_background')
-
-    sourceX = ListProperty([])
-    sourceY = ListProperty([])
-    units = ObjectProperty(['--','--'])
-    titles = ObjectProperty(['--','--'])
-    ax_colors = ObjectProperty(['g','g'])
-    notification = StringProperty('')
-    
+class CoronaTestLayout(BoxLayout):
     def __init__(self, **kwargs):
-        '''__init__ takes the figure the backend is going to work with'''
-        super(TwoPlotsSharedXWidget, self).__init__(plt.figure(), **kwargs)
-        
-    def update_plot(self, *args, **kwargs):
-        '''
-        reads the latest data, updates the figure and plots it.
-        
-        Args:
-            *args (): not used. For further development.
-            **kwargs (): not used. For further development.
-
-        Returns:
-            Nothing.
-        '''
-
-        timestamp = []
-
-        for element in self.sourceX:
-            timestamp.append(datetime.fromtimestamp(mktime(strptime(element + '-1', "%Y-%W-%w"))))
-
-        #Clear the figure
-        myfigure = self.figure
-        myfigure.clf()
-
-        axes = myfigure.subplots(2,1, sharex=True)
-
-        #Add the data to the axes and modify their axis
-        for n in range(len(axes)):
-            axes[n].plot_date(timestamp, self.sourceY[n], self.ax_colors[n], xdate=True)             
-            axes[n].set_ylabel(self.units[n])
-            axes[n].set_title(self.titles[n])
-            plt.ylim(min(self.sourceY[n])-2,max(self.sourceY[n])+2)
-            axes[n].xaxis.set_major_locator(dt.MonthLocator(bymonth=range(1,13))) #show major ticks witha step widht of 1 month
-            axes[n].xaxis.set_major_formatter(dt.DateFormatter('%d-%b'))
-
-        #the axis labels for the first subplot are made invisible
-        plt.setp(axes[0].get_xticklabels(which='both'), visible=False)
-
-        #draw the figure
-        myfigure.canvas.draw_idle()
-
-class MyRootLayout(BoxLayout):
-    def __init__(self, **kwargs):
-        super(MyRootLayout, self).__init__(**kwargs)
+        super(CoronaTestLayout, self).__init__(**kwargs)
         self.ids['wdgt1'].download_data()
 
-class MyVisuApp(App):
+
+class CoronaWidgetApp(App):
     def build(self):
-        #To Do:
-        #1. check if covid.json exists and if it is up to date
-        #2. if not load ist async
-        return MyRootLayout()
+        return CoronaTestLayout()
+
 
 if __name__ == '__main__':
-    MyVisuApp().run()
+    CoronaWidgetApp().run()
