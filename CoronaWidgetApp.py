@@ -133,17 +133,14 @@ class CoronaWidget(RelativeLayout):
             if self.activeCountry in self.countries:
                 self.ids['spn2'].text = self.activeCountry
 
-
 class CoronaTestLayout(BoxLayout):
     def __init__(self, **kwargs):
         super(CoronaTestLayout, self).__init__(**kwargs)
         self.ids['wdgt1'].download_data()
 
-
 class CoronaWidgetApp(App):
     def build(self):
         return CoronaTestLayout()
-
 
 if __name__ == '__main__':
     CoronaWidgetApp().run()
