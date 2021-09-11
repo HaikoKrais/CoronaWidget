@@ -1,5 +1,7 @@
 # CoronaWidget
-Simple Widget for Kivy to display weekly cases and two charts showing weekly and cumulative infections worldwide.
+Simple Widget for Kivy to display 
+a) weekly cases and two charts showing weekly and cumulative infections worldwide.
+b) weekly vaccinations
 
 The widget uses data provided from the ECDC. This data represents the daily infections by country worldwide and is available at https://www.ecdc.europa.eu/en/publications-data/download-todays-data-geographic-distribution-covid-19-cases-worldwide in different formats.
 
