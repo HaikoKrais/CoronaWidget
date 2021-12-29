@@ -14,6 +14,8 @@ import os
 from kivy.network.urlrequest import UrlRequest
 from TwoPlotsSharedXWidgetApp import TwoPlotsSharedXWidget as TwoPlotsSharedXWidget
 import pandas as pd
+from kivy.resources import resource_add_path
+import os
 
 
 class CoronaWidget(RelativeLayout):
@@ -238,4 +240,7 @@ class CoronaWidgetApp(App):
         return CoronaTestLayout()
 
 if __name__ == '__main__':
+
+    #add the parent directories of your referenced kv files or they will not be found
+    resource_add_path(r'C:\Users\49172\PycharmProjects')
     CoronaWidgetApp().run()
