@@ -77,6 +77,7 @@ class CoronaWidget(RelativeLayout):
         'SIN' : 'Sinovac',
         'SPU' : 'Sputnik V',
         'CN' : 'CNBG',
+        'NVXD' : 'Novavax',
         'UNK' : 'Unknown'
     }
 
@@ -135,10 +136,9 @@ class CoronaWidget(RelativeLayout):
 
         for element in self.dataset:
             if element['country'] == country and element['indicator'] == 'cases':
-                self.casesWeekly.append(element['weekly_count'])
-                self.cumulativeCases.append(element['cumulative_count'])
-                self.datesOfCases.append(
-                    datetime.fromtimestamp(mktime(strptime(element['year_week'] + '-1', '%Y-%W-%w'))))
+                self.casesWeekly.append(element.get('weekly_count',0))
+                self.cumulativeCases.append(element.get('cumulative_count',0))
+                self.datesOfCases.append(datetime.fromtimestamp(mktime(strptime(element['year_week'] + '-1', '%Y-%W-%w'))))
 
         try:
             self.ids['plt1'].update_plot()
@@ -174,7 +174,7 @@ class CoronaWidget(RelativeLayout):
             if element['ReportingCountry'] == country_code and element['TargetGroup'] == 'ALL':
                 dates.append(datetime.fromtimestamp(mktime(strptime(element['YearWeekISO'].replace('W','') + '-1', '%Y-%W-%w'))))
                 doses.append(element['FirstDose'])
-                vaccines.append(self.vaccines[element['Vaccine']])
+                vaccines.append(self.vaccines[element.get('Vaccine', 'n.a.')])
 
         #re-sort data by week and sum of all vaccines by week
         dates_unique = []
