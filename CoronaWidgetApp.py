@@ -100,8 +100,8 @@ class CoronaWidget(RelativeLayout):
         '''
         url = 'https://opendata.ecdc.europa.eu/covid19/vaccine_tracker/json/'
 
-        UrlRequest(url=url, on_success=self.update_dataset_vaccination, on_error=self.download_error, on_progress=self.progress,
-                   chunk_size=40960)
+        UrlRequest(url=url, on_success=self.update_dataset_vaccination, on_error=self.download_error,
+        chunk_size=81820)
 
     def update_dataset_infection(self, request, result):
         '''write result of request into variable self.dataset'''
@@ -143,7 +143,7 @@ class CoronaWidget(RelativeLayout):
         try:
             self.ids['plt1'].update_plot()
         except:
-            print('Infetions could not be updated. Check data')
+            print('Infections could not be updated. Check data')
 
         # update last week labels
         indexLastDate = self.datesOfCases.index(max(self.datesOfCases))
@@ -157,6 +157,10 @@ class CoronaWidget(RelativeLayout):
             return
 
         country_code = self.get_country_code(country_name=country, code='Alpha-2 code')
+
+
+        #sort vaccination data by date (started to be not in order and will mess with the plot)
+        self.dataset_vaccination.sort(key = lambda x : x['YearWeekISO'])
 
         #data sorted by week and all available vaccines
         self.vaccinationWeekly.clear()
@@ -174,7 +178,11 @@ class CoronaWidget(RelativeLayout):
             if element['ReportingCountry'] == country_code and element['TargetGroup'] == 'ALL':
                 dates.append(datetime.fromtimestamp(mktime(strptime(element['YearWeekISO'].replace('W','') + '-1', '%Y-%W-%w'))))
                 doses.append(element['FirstDose'])
-                vaccines.append(self.vaccines[element.get('Vaccine', 'n.a.')])
+                'Vaccines updated frequently. dict might not be up to date'
+                try:
+                    vaccines.append(self.vaccines[element.get('Vaccine', 'n.a.')])
+                except:
+                    vaccines.append('Unknown')
 
         #re-sort data by week and sum of all vaccines by week
         dates_unique = []
